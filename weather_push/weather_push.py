@@ -12,9 +12,70 @@ WXPUSHER_APP_TOKEN = os.environ.get("WXPUSHER_APP_TOKEN") # New: WXPusher
 WXPUSHER_UID = os.environ.get("WXPUSHER_UID") # New: WXPusher User ID
 CITY_NAME = os.environ.get("CITY", "Shenzhen")
 
-# ... (Keep existing API URLs and helper functions) ...
+# QWeather API Endpoints
+# GeoAPI to get City ID
+GEO_API_URL = "https://geoapi.qweather.com/v2/city/lookup"
+# Weather API (Dev/Free tier)
+WEATHER_API_URL = "https://devapi.qweather.com/v7/weather/3d"
+INDICES_API_URL = "https://devapi.qweather.com/v7/indices/1d"
 
-def send_wxpusher(msg, app_token, uid):
+def get_city_id(city_name, api_key):
+    """Get City ID from City Name"""
+    params = {
+        "location": city_name,
+        "key": api_key
+    }
+    try:
+        response = requests.get(GEO_API_URL, params=params)
+        response.raise_for_status()
+        data = response.json()
+        if data["code"] == "200" and data["location"]:
+            return data["location"][0]["id"]
+        else:
+            print(f"Error getting city ID: {data}")
+            return None
+    except Exception as e:
+        print(f"Exception getting city ID: {e}")
+        return None
+
+def get_weather(city_id, api_key):
+    """Get 3-day weather forecast (we only need today)"""
+    params = {
+        "location": city_id,
+        "key": api_key
+    }
+    try:
+        response = requests.get(WEATHER_API_URL, params=params)
+        response.raise_for_status()
+        data = response.json()
+        if data["code"] == "200":
+            return data["daily"][0] # Return today's forecast
+        else:
+            print(f"Error getting weather: {data}")
+            return None
+    except Exception as e:
+        print(f"Exception getting weather: {e}")
+        return None
+
+def get_indices(city_id, api_key):
+    """Get Life Indices (Dressing, UV, etc.)"""
+    params = {
+        "location": city_id,
+        "key": api_key,
+        "type": "1,3" # 1=Sport, 3=Dressing
+    }
+    try:
+        response = requests.get(INDICES_API_URL, params=params)
+        response.raise_for_status()
+        data = response.json()
+        if data["code"] == "200":
+            return data["daily"]
+        else:
+            print(f"Error getting indices: {data}")
+            return []
+    except Exception as e:
+        print(f"Exception getting indices: {e}")
+        return []def send_wxpusher(msg, app_token, uid):
     """Send message via WXPusher"""
     url = "https://wxpusher.zjiecode.com/api/send/message"
     data = {
