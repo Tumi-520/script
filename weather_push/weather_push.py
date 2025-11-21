@@ -172,7 +172,7 @@ def main():
     msg += f"气温: {weather_data['tempMin']}°C ~ {weather_data['tempMax']}°C<br>"
     msg += f"风向: {weather_data['windDirDay']} {weather_data['windScaleDay']}级<br>"
     
-    if int(weather_data.get('precip', '0')) > 0:
+    if float(weather_data.get('precip', '0')) > 0:
         msg += f"<b>下雨概率: {weather_data['precip']}%，记得带伞！</b><br>"
     
     if indices:
