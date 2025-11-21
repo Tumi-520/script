@@ -28,5 +28,7 @@ jobs:
         QWEATHER_KEY: ${{ secrets.QWEATHER_KEY }}
         QMSG_KEY: ${{ secrets.QMSG_KEY }}
         PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
+        WXPUSHER_APP_TOKEN: ${{ secrets.WXPUSHER_APP_TOKEN }}
+        WXPUSHER_UID: ${{ secrets.WXPUSHER_UID }}
         CITY: "Shenzhen"
       run: python weather_push/weather_push.py

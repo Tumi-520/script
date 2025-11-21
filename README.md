@@ -20,7 +20,8 @@
     | Name (名称) | Value (值) | 说明 |
     | :--- | :--- | :--- |
     | `QWEATHER_KEY` | `您的和风天气Key` | [获取地址](https://console.qweather.com/) (创建项目 -> Web API -> 复制 Key) |
-    | `PUSHPLUS_TOKEN` | `您的PushPlus Token` | [获取地址](http://www.pushplus.plus/) (登录 -> 一对一推送 -> 复制 Token) |
+    | `WXPUSHER_APP_TOKEN` | `WXPusher AppToken` | [获取地址](https://wxpusher.zjiecode.com/admin/) (创建应用 -> 复制 AppToken) |
+    | `WXPUSHER_UID` | `您的UID` | [获取地址](https://wxpusher.zjiecode.com/admin/) (微信扫码关注应用 -> 用户列表 -> 复制 UID) |
     | `QMSG_KEY` | `您的Qmsg酱Key` | (可选) 如果想同时推送到 QQ，可保留此项 |
 
 ## 3. 验证运行

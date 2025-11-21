@@ -7,21 +7,43 @@ from datetime import datetime
 # Get these from environment variables (GitHub Secrets)
 QWEATHER_KEY = os.environ.get("QWEATHER_KEY")
 QMSG_KEY = os.environ.get("QMSG_KEY")
-PUSHPLUS_TOKEN = os.environ.get("PUSHPLUS_TOKEN") # New: WeChat Push
+PUSHPLUS_TOKEN = os.environ.get("PUSHPLUS_TOKEN")
+WXPUSHER_APP_TOKEN = os.environ.get("WXPUSHER_APP_TOKEN") # New: WXPusher
+WXPUSHER_UID = os.environ.get("WXPUSHER_UID") # New: WXPusher User ID
 CITY_NAME = os.environ.get("CITY", "Shenzhen")
 
-# ... (Keep existing API URLs) ...
+# ... (Keep existing API URLs and helper functions) ...
 
-# ... (Keep get_city_id, get_weather, get_indices functions) ...
+def send_wxpusher(msg, app_token, uid):
+    """Send message via WXPusher"""
+    url = "https://wxpusher.zjiecode.com/api/send/message"
+    data = {
+        "appToken": app_token,
+        "content": msg,
+        "summary": f"{CITY_NAME}天气预报", # Summary for list view
+        "contentType": 2, # 1=Text, 2=HTML, 3=Markdown
+        "uids": [uid]
+    }
+    try:
+        response = requests.post(url, json=data)
+        response.raise_for_status()
+        result = response.json()
+        if result["success"]:
+            print("WXPusher message sent successfully.")
+        else:
+            print(f"Failed to send WXPusher message: {result}")
+    except Exception as e:
+        print(f"Exception sending WXPusher message: {e}")
 
 def send_pushplus(msg, token):
+    # ... (Keep existing PushPlus logic just in case) ...
     """Send message via PushPlus (WeChat)"""
     url = "http://www.pushplus.plus/send"
     data = {
         "token": token,
         "title": f"{CITY_NAME}天气预报",
         "content": msg,
-        "template": "html" # Use HTML for better formatting if needed, or txt
+        "template": "html"
     }
     try:
         response = requests.post(url, json=data)
@@ -57,8 +79,9 @@ def main():
         print("Error: QWEATHER_KEY not found.")
         return
         
-    if not QMSG_KEY and not PUSHPLUS_TOKEN:
-        print("Error: No push token found (QMSG_KEY or PUSHPLUS_TOKEN).")
+    # Check for any valid push configuration
+    if not any([QMSG_KEY, PUSHPLUS_TOKEN, (WXPUSHER_APP_TOKEN and WXPUSHER_UID)]):
+        print("Error: No valid push configuration found (QMSG, PushPlus, or WXPusher).")
         return
 
     print(f"Fetching weather for {CITY_NAME}...")
@@ -81,8 +104,7 @@ def main():
     # 4. Format Message
     today_date = datetime.now().strftime("%Y-%m-%d")
     
-    # HTML format for PushPlus, plain text for Qmsg
-    # We'll construct a generic one and maybe tweak if needed
+    # HTML format for WXPusher/PushPlus
     msg = f"早安！今天 <b>{CITY_NAME}</b> 的天气是 {weather_data['textDay']}。<br>"
     msg += f"气温: {weather_data['tempMin']}°C ~ {weather_data['tempMax']}°C<br>"
     msg += f"风向: {weather_data['windDirDay']} {weather_data['windScaleDay']}级<br>"
@@ -97,16 +119,16 @@ def main():
     print("Message content generated.")
 
     # 5. Send Notification
+    if WXPUSHER_APP_TOKEN and WXPUSHER_UID:
+        print("Sending via WXPusher...")
+        send_wxpusher(msg, WXPUSHER_APP_TOKEN, WXPUSHER_UID)
+
     if PUSHPLUS_TOKEN:
         print("Sending via PushPlus...")
         send_pushplus(msg, PUSHPLUS_TOKEN)
     
     if QMSG_KEY:
         print("Sending via Qmsg...")
-        # Strip HTML tags for Qmsg if necessary, or Qmsg might handle them poorly
-        # For simplicity, sending the same string. Qmsg might show raw HTML tags.
-        # Let's make a simple text version for Qmsg if both are present?
-        # Or just assume user only uses one.
         send_qmsg(msg.replace("<br>", "\n").replace("<b>", "").replace("</b>", ""), QMSG_KEY)
 
 if __name__ == "__main__":
