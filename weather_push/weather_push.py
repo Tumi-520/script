@@ -75,7 +75,9 @@ def get_indices(city_id, api_key):
             return []
     except Exception as e:
         print(f"Exception getting indices: {e}")
-        return []def send_wxpusher(msg, app_token, uid):
+        return []
+
+def send_wxpusher(msg, app_token, uid):
     """Send message via WXPusher"""
     url = "https://wxpusher.zjiecode.com/api/send/message"
     data = {
