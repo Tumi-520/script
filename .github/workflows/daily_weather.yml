@@ -27,5 +27,6 @@ jobs:
       env:
         QWEATHER_KEY: ${{ secrets.QWEATHER_KEY }}
         QMSG_KEY: ${{ secrets.QMSG_KEY }}
+        PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
         CITY: "Shenzhen"
       run: python weather_push/weather_push.py

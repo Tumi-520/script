@@ -7,74 +7,35 @@ from datetime import datetime
 # Get these from environment variables (GitHub Secrets)
 QWEATHER_KEY = os.environ.get("QWEATHER_KEY")
 QMSG_KEY = os.environ.get("QMSG_KEY")
-CITY_NAME = os.environ.get("CITY", "Shenzhen") # Default to Shenzhen if not set
+PUSHPLUS_TOKEN = os.environ.get("PUSHPLUS_TOKEN") # New: WeChat Push
+CITY_NAME = os.environ.get("CITY", "Shenzhen")
 
-# QWeather API Endpoints
-# GeoAPI to get City ID
-GEO_API_URL = "https://geoapi.qweather.com/v2/city/lookup"
-# Weather API (Dev/Free tier)
-WEATHER_API_URL = "https://devapi.qweather.com/v7/weather/3d"
-INDICES_API_URL = "https://devapi.qweather.com/v7/indices/1d"
+# ... (Keep existing API URLs) ...
 
-def get_city_id(city_name, api_key):
-    """Get City ID from City Name"""
-    params = {
-        "location": city_name,
-        "key": api_key
+# ... (Keep get_city_id, get_weather, get_indices functions) ...
+
+def send_pushplus(msg, token):
+    """Send message via PushPlus (WeChat)"""
+    url = "http://www.pushplus.plus/send"
+    data = {
+        "token": token,
+        "title": f"{CITY_NAME}天气预报",
+        "content": msg,
+        "template": "html" # Use HTML for better formatting if needed, or txt
     }
     try:
-        response = requests.get(GEO_API_URL, params=params)
+        response = requests.post(url, json=data)
         response.raise_for_status()
-        data = response.json()
-        if data["code"] == "200" and data["location"]:
-            return data["location"][0]["id"]
+        result = response.json()
+        if result["code"] == 200:
+            print("PushPlus message sent successfully.")
         else:
-            print(f"Error getting city ID: {data}")
-            return None
+            print(f"Failed to send PushPlus message: {result}")
     except Exception as e:
-        print(f"Exception getting city ID: {e}")
-        return None
-
-def get_weather(city_id, api_key):
-    """Get 3-day weather forecast (we only need today)"""
-    params = {
-        "location": city_id,
-        "key": api_key
-    }
-    try:
-        response = requests.get(WEATHER_API_URL, params=params)
-        response.raise_for_status()
-        data = response.json()
-        if data["code"] == "200":
-            return data["daily"][0] # Return today's forecast
-        else:
-            print(f"Error getting weather: {data}")
-            return None
-    except Exception as e:
-        print(f"Exception getting weather: {e}")
-        return None
-
-def get_indices(city_id, api_key):
-    """Get Life Indices (Dressing, UV, etc.)"""
-    params = {
-        "location": city_id,
-        "key": api_key,
-        "type": "1,3" # 1=Sport, 3=Dressing
-    }
-    try:
-        response = requests.get(INDICES_API_URL, params=params)
-        response.raise_for_status()
-        data = response.json()
-        if data["code"] == "200":
-            return data["daily"]
-        else:
-            print(f"Error getting indices: {data}")
-            return []
-    except Exception as e:
-        print(f"Exception getting indices: {e}")
-        return []
+        print(f"Exception sending PushPlus message: {e}")
 
 def send_qmsg(msg, qmsg_key):
+    # ... (Keep existing Qmsg logic) ...
     """Send message via Qmsg"""
     url = f"https://qmsg.zendee.cn/send/{qmsg_key}"
     data = {
@@ -85,15 +46,19 @@ def send_qmsg(msg, qmsg_key):
         response.raise_for_status()
         result = response.json()
         if result["success"]:
-            print("Message sent successfully.")
+            print("Qmsg message sent successfully.")
         else:
-            print(f"Failed to send message: {result}")
+            print(f"Failed to send Qmsg message: {result}")
     except Exception as e:
-        print(f"Exception sending message: {e}")
+        print(f"Exception sending Qmsg message: {e}")
 
 def main():
-    if not QWEATHER_KEY or not QMSG_KEY:
-        print("Error: QWEATHER_KEY or QMSG_KEY not found in environment variables.")
+    if not QWEATHER_KEY:
+        print("Error: QWEATHER_KEY not found.")
+        return
+        
+    if not QMSG_KEY and not PUSHPLUS_TOKEN:
+        print("Error: No push token found (QMSG_KEY or PUSHPLUS_TOKEN).")
         return
 
     print(f"Fetching weather for {CITY_NAME}...")
@@ -110,31 +75,40 @@ def main():
         print("Could not get weather data.")
         return
 
-    # 3. Get Indices (Optional but nice)
+    # 3. Get Indices
     indices = get_indices(city_id, QWEATHER_KEY)
     
-    # 4. Format Message (Casual style to avoid Qmsg filter)
+    # 4. Format Message
     today_date = datetime.now().strftime("%Y-%m-%d")
     
-    # Try a very simple format first to bypass "violation" check
-    msg = f"早安！今天{CITY_NAME}的天气是{weather_data['textDay']}，气温{weather_data['tempMin']}到{weather_data['tempMax']}度。"
+    # HTML format for PushPlus, plain text for Qmsg
+    # We'll construct a generic one and maybe tweak if needed
+    msg = f"早安！今天 <b>{CITY_NAME}</b> 的天气是 {weather_data['textDay']}。<br>"
+    msg += f"气温: {weather_data['tempMin']}°C ~ {weather_data['tempMax']}°C<br>"
+    msg += f"风向: {weather_data['windDirDay']} {weather_data['windScaleDay']}级<br>"
     
     if int(weather_data.get('precip', '0')) > 0:
-        msg += f" 下雨概率{weather_data['precip']}%，记得带伞。"
-    
-    msg += f"\n当前风向{weather_data['windDirDay']}，风力{weather_data['windScaleDay']}级。"
+        msg += f"<b>下雨概率: {weather_data['precip']}%，记得带伞！</b><br>"
     
     if indices:
-        # Only take the first index (usually sport or dressing) to keep it short
         idx = indices[0]
-        msg += f"\n{idx['name']}建议: {idx['category']}"
-
+        msg += f"<br>{idx['name']}建议: {idx['category']}"
             
-    print("Message content:")
-    print(msg)
+    print("Message content generated.")
 
     # 5. Send Notification
-    send_qmsg(msg, QMSG_KEY)
+    if PUSHPLUS_TOKEN:
+        print("Sending via PushPlus...")
+        send_pushplus(msg, PUSHPLUS_TOKEN)
+    
+    if QMSG_KEY:
+        print("Sending via Qmsg...")
+        # Strip HTML tags for Qmsg if necessary, or Qmsg might handle them poorly
+        # For simplicity, sending the same string. Qmsg might show raw HTML tags.
+        # Let's make a simple text version for Qmsg if both are present?
+        # Or just assume user only uses one.
+        send_qmsg(msg.replace("<br>", "\n").replace("<b>", "").replace("</b>", ""), QMSG_KEY)
 
 if __name__ == "__main__":
     main()
+

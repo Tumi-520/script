@@ -20,7 +20,8 @@
     | Name (名称) | Value (值) | 说明 |
     | :--- | :--- | :--- |
     | `QWEATHER_KEY` | `您的和风天气Key` | [获取地址](https://console.qweather.com/) (创建项目 -> Web API -> 复制 Key) |
-    | `QMSG_KEY` | `您的Qmsg酱Key` | [获取地址](https://qmsg.zendee.cn/) (登录 -> 复制 Key) |
+    | `PUSHPLUS_TOKEN` | `您的PushPlus Token` | [获取地址](http://www.pushplus.plus/) (登录 -> 一对一推送 -> 复制 Token) |
+    | `QMSG_KEY` | `您的Qmsg酱Key` | (可选) 如果想同时推送到 QQ，可保留此项 |
 
 ## 3. 验证运行
 配置好 Secrets 后，我们可以手动触发一次来测试。
